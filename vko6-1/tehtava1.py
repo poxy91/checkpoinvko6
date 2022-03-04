@@ -1,105 +1,59 @@
-import requests 
+import requests
 import os
-from urllib import request
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, __version__
 
-from azure.identity import AzureCliCredential
-from azure.mgmt.storage import StorageManagementClient
-from azure.mgmt.resource import ResourceManagementClient
-
-
+BLOB_CONTAINER = "blobstoragehenrik"
+connect_str = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 def main():
-
-    def tehtava():
+    readjson()
+    create_blob()
+    upload_blobfile()
+    #list_blobfiles()
+    
+def readjson():
            
-        responsee = requests.get('https://2ri98gd9i4.execute-api.us-east-1.amazonaws.com/dev/academy-checkpoint2-json')
-        data = responsee.json()
-        with open('checkpoint.txt', 'w') as new_document:
-            for i in data['items']:
-                print(i['parameter'])
+    responsee = requests.get('https://2ri98gd9i4.execute-api.us-east-1.amazonaws.com/dev/academy-checkpoint2-json')
+    data = responsee.json()
+    with open('checkpoint.txt', 'w') as new_document:
+        for i in data['items']:
+            print(i['parameter'])
                 
-                new_document.write(i['parameter'])
-                new_document.write('\n')
+            new_document.write(i['parameter'])
+            new_document.write('\n')
+   
+def create_blob():
+        
+    try:
+        
+        # Create the BlobServiceClient object which will be used to create a container client
+        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
 
-        #create_blob_container()
+        # Create a unique name for the container
+        container_name = str(BLOB_CONTAINER)
 
-    tehtava(request)
+        # Create the container
+        blob_service_client.create_container(container_name)
+        
+    except Exception as ex:
+        print('Exception:')
+        print(ex)        
 
-
-
-"""     def create_blob_container():
-        SUBSCRIPTION_ID = os.environ.get("SUBSCRIPTION_ID", None)
-        GROUP_NAME = "henrikRG"
-        STORAGE_ACCOUNT = "henrikstorageaccount"
-        BLOB_CONTAINER = "blobstoragehenrik"
-
-        # Create client
-        # # For other authentication approaches, please see: https://pypi.org/project/azure-identity/
-        resource_client = ResourceManagementClient(
-            credential=AzureCliCredential(),
-            subscription_id=SUBSCRIPTION_ID
-        )
-        storage_client = StorageManagementClient(
-            credential=AzureCliCredential(),
-            subscription_id=SUBSCRIPTION_ID
-        )
-
-        resource_storage = list(storage_client.resource_storage.list())
-        #print("List resource groups:\n{}".format(resource_groups))
+def upload_blobfile():
     
-        for i in resource_storage:
+    blob = BlobClient.from_connection_string(conn_str=connect_str , container_name=BLOB_CONTAINER, blob_name="checkpoint.txt")
 
-            
+    with open("checkpoint.txt", "rb") as data:
+        blob.upload_blob(data)   
 
-            print("Name: {}\nLocation: {}\nTags: {}\n".format(i.name, i.location, i.tags))
-
-        # - init depended resources -
-    # Create resource group
-        resource_client.resource_groups.create_or_update(
-        GROUP_NAME,
-        {"location": "eastus"}
-        )
-    # Create storage account
-        storage_client.storage_accounts.begin_create(
-        GROUP_NAME,
-        STORAGE_ACCOUNT,
-        {
-          "sku": {
-            "name": "Standard_GRS"
-          },
-          "kind": "StorageV2",
-          "location": "eastus",
-          "encryption": {
-            "services": {
-              "file": {
-                "key_type": "Account",
-                "enabled": True
-              },
-              "blob": {
-                "key_type": "Account",
-                "enabled": True
-              }
-            },
-            "key_source": "Microsoft.Storage"
-          },
-          "tags": {
-            "key1": "value1",
-            "key2": "value2"
-          }
-        }
-    ).result()
-    # - end -
-
-
-
+def list_blobfiles():
     
-        # Create blob container
-        blob_container = storage_client.blob_containers.create(
-            GROUP_NAME,
-            STORAGE_ACCOUNT,
-            BLOB_CONTAINER,
-            {}
-        )
-        print("Create blob container:\n{}".format(blob_container))
- """
+    container = ContainerClient.from_connection_string(conn_str=connect_str, container_name=BLOB_CONTAINER)
+
+    blob_list = container.list_blobs()
+
+    for blob in blob_list:
+        print(blob.name + '\n')
+
+
 if __name__ == "__main__":
     main()
